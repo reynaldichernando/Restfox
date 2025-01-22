@@ -280,12 +280,32 @@ export async function fetchWrapper(url: URL, method: string, headers: Record<str
 
     const startTime = new Date()
 
-    const response = await fetch(url, {
-        method,
-        headers,
-        body: method !== 'GET' ? body : undefined,
-        signal: abortControllerSignal
-    })
+    const isLocalUrl = (url: string): boolean => {
+        const localPatterns = [
+            'localhost',
+            '127.0.0.1',
+            '192.168.',
+            '0.0.0.0'
+        ];
+        return localPatterns.some(pattern => url.includes(pattern));
+    };
+
+    const response = await (isLocalUrl(url.href)
+        ? fetch(url, {
+            method,
+            headers,
+            body: method !== 'GET' ? body : undefined,
+            signal: abortControllerSignal
+        })
+        : fetch(`https://proxy.corsfix.com/?${url}`, {
+            method,
+            headers: {
+                'X-Corsfix-Headers': JSON.stringify(headers),
+            },
+            body: method !== 'GET' ? body : undefined,
+            signal: abortControllerSignal
+        })
+    );
 
     const headEndTime = new Date()
 
